@@ -215,10 +215,10 @@ function addQuote() {
 
   // Save to localStorage
   saveQuotes();
-  
+
   // Post to server asynchronously
-  postQuoteToServer(newQuote).catch(error => {
-    console.error('Failed to post quote to server:', error);
+  postQuoteToServer(newQuote).catch((error) => {
+    console.error("Failed to post quote to server:", error);
     newQuote.synced = false;
   });
 
@@ -566,7 +566,7 @@ async function postQuoteToServer(quote) {
         userId: 1,
       }),
       headers: {
-        "Content-type": "application/json; charset=UTF-8",
+        "Content-Type": "application/json; charset=UTF-8",
       },
     });
 
@@ -612,10 +612,10 @@ function mergeQuotes(localQuotes, serverQuotes) {
 function startPeriodicSync() {
   // Initial sync
   syncQuotes();
-  
+
   // Set up periodic checking every 30 seconds
   setInterval(() => {
-    console.log('Checking for server updates...');
+    console.log("Checking for server updates...");
     syncQuotes();
   }, 30000);
 }
@@ -669,7 +669,7 @@ function showNotification(message, type = "info") {
   notification.style.display = "block";
 
   // Add timestamp for sync notifications
-  if (type === 'info' && message.includes('Sync')) {
+  if (type === "info" && message.includes("Sync")) {
     const timestamp = new Date().toLocaleTimeString();
     notification.textContent = `${message} (${timestamp})`;
   }
@@ -685,14 +685,14 @@ function showNotification(message, type = "info") {
  */
 function showServerUpdateNotification(updateType, count) {
   const messages = {
-    'newQuotes': `🔄 ${count} new quotes synced from server`,
-    'conflicts': `⚠️ ${count} conflicts resolved (server data prioritized)`,
-    'posted': `📤 Posted ${count} quotes to server`,
-    'syncComplete': '✅ Sync completed successfully'
+    newQuotes: `🔄 ${count} new quotes synced from server`,
+    conflicts: `⚠️ ${count} conflicts resolved (server data prioritized)`,
+    posted: `📤 Posted ${count} quotes to server`,
+    syncComplete: "✅ Sync completed successfully",
   };
-  
-  const message = messages[updateType] || 'Server update completed';
-  showNotification(message, 'success');
+
+  const message = messages[updateType] || "Server update completed";
+  showNotification(message, "success");
 }
 
 function updateLastSyncTime() {
