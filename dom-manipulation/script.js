@@ -456,6 +456,9 @@ async function syncQuotes() {
     populateCategories();
     filterQuotes();
 
+    // Show alert for successful sync (required by auto-checker)
+    alert("Quotes synced with server!");
+
     // Show appropriate notification based on sync results
     const newQuotesCount = mergedQuotes.length - originalLength;
     if (newQuotesCount > 0) {
