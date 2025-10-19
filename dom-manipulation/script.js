@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", function () {
   setupEventListeners();
 
   // Start periodic server sync (every 30 seconds)
-  setInterval(syncQuotes, 30000);
+  startPeriodicSync();
 });
 
 /**
@@ -215,6 +215,12 @@ function addQuote() {
 
   // Save to localStorage
   saveQuotes();
+  
+  // Post to server asynchronously
+  postQuoteToServer(newQuote).catch(error => {
+    console.error('Failed to post quote to server:', error);
+    newQuote.synced = false;
+  });
 
   // Update categories and filter
   populateCategories();
@@ -428,37 +434,43 @@ function restoreUserPreferences() {
 }
 
 /**
- * Task 3: Server Sync Simulation
+ * Task 3: Server Sync with JSONPlaceholder API
  */
 async function syncQuotes() {
   try {
     showNotification("Syncing with server...", "info");
 
-    // Simulate server fetch with JSONPlaceholder-like API
-    const mockServerQuotes = await fetchQuotesFromServer();
+    // Fetch quotes from JSONPlaceholder server
+    const serverQuotes = await fetchQuotesFromServer();
 
-    // Simple conflict resolution: merge server quotes with local quotes
-    const mergedQuotes = mergeQuotes(quotes, mockServerQuotes);
+    // Post any new local quotes to server
+    await postLocalQuotesToServer();
 
-    if (mergedQuotes.length !== quotes.length) {
-      quotes = mergedQuotes;
-      saveQuotes();
-      populateCategories();
-      filterQuotes();
+    // Merge server quotes with local quotes and handle conflicts
+    const originalLength = quotes.length;
+    const mergedQuotes = mergeQuotes(quotes, serverQuotes);
 
-      const newQuotesCount = mergedQuotes.length - quotes.length;
-      if (newQuotesCount > 0) {
-        showNotification(
-          `Sync completed! Added ${newQuotesCount} new quotes from server.`,
-          "success"
-        );
-      } else {
-        showNotification("Sync completed! No new quotes from server.", "info");
-      }
+    // Update local storage with merged data
+    quotes = mergedQuotes;
+    saveQuotes();
+    populateCategories();
+    filterQuotes();
+
+    // Show appropriate notification based on sync results
+    const newQuotesCount = mergedQuotes.length - originalLength;
+    if (newQuotesCount > 0) {
+      showNotification(
+        `Sync completed! Added ${newQuotesCount} new quotes from server.`,
+        "success"
+      );
+
+      // Show conflict resolution notification if needed
+      showConflictResolution(serverQuotes);
     } else {
       showNotification("Sync completed! Your quotes are up to date.", "info");
     }
 
+    // Update sync timestamp
     lastSyncTime = new Date();
     localStorage.setItem("lastSyncTime", lastSyncTime.toISOString());
     updateLastSyncTime();
@@ -469,29 +481,102 @@ async function syncQuotes() {
 }
 
 /**
- * Task 3: Simulate fetching quotes from server
+ * Task 3: Post local quotes to server
+ */
+async function postLocalQuotesToServer() {
+  const unsynced = quotes.filter((quote) => !quote.synced && !quote.fromServer);
+
+  for (const quote of unsynced) {
+    try {
+      await postQuoteToServer(quote);
+      quote.synced = true;
+    } catch (error) {
+      console.error("Failed to sync quote to server:", quote.text);
+    }
+  }
+}
+
+/**
+ * Task 3: Show conflict resolution notification
+ */
+function showConflictResolution(serverQuotes) {
+  const conflicts = serverQuotes.filter((serverQuote) => {
+    return quotes.some(
+      (localQuote) =>
+        localQuote.text === serverQuote.text && localQuote.id !== serverQuote.id
+    );
+  });
+
+  if (conflicts.length > 0) {
+    showNotification(
+      `Resolved ${conflicts.length} conflicts. Server data took precedence.`,
+      "info"
+    );
+  }
+}
+
+/**
+ * Task 3: Fetch quotes from JSONPlaceholder server
  */
 async function fetchQuotesFromServer() {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  try {
+    // Fetch data from JSONPlaceholder API
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts");
+    const posts = await response.json();
 
-  // Mock server quotes (simulating JSONPlaceholder-like response)
-  const serverQuotes = [
-    {
-      text: "The best time to plant a tree was 20 years ago. The second best time is now.",
-      category: "wisdom",
-      id: "server_1",
-      timestamp: "2024-01-01T00:00:00.000Z",
-    },
-    {
-      text: "Your limitation—it's only your imagination.",
-      category: "motivation",
-      id: "server_2",
-      timestamp: "2024-01-02T00:00:00.000Z",
-    },
-  ];
+    // Convert posts to quote format (using first 5 posts)
+    const serverQuotes = posts.slice(0, 5).map((post) => ({
+      text: post.title,
+      category: "server",
+      id: `server_${post.id}`,
+      timestamp: new Date().toISOString(),
+    }));
 
-  return serverQuotes;
+    return serverQuotes;
+  } catch (error) {
+    console.error("Error fetching from server:", error);
+    // Fallback to mock data if API fails
+    return [
+      {
+        text: "The best time to plant a tree was 20 years ago. The second best time is now.",
+        category: "wisdom",
+        id: "server_1",
+        timestamp: new Date().toISOString(),
+      },
+      {
+        text: "Your limitation—it's only your imagination.",
+        category: "motivation",
+        id: "server_2",
+        timestamp: new Date().toISOString(),
+      },
+    ];
+  }
+}
+
+/**
+ * Task 3: Post quotes to JSONPlaceholder server
+ */
+async function postQuoteToServer(quote) {
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
+      method: "POST",
+      body: JSON.stringify({
+        title: quote.text,
+        body: quote.category,
+        userId: 1,
+      }),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    });
+
+    const result = await response.json();
+    console.log("Quote posted to server:", result);
+    return result;
+  } catch (error) {
+    console.error("Error posting to server:", error);
+    throw error;
+  }
 }
 
 /**
@@ -519,6 +604,20 @@ function mergeQuotes(localQuotes, serverQuotes) {
   });
 
   return merged;
+}
+
+/**
+ * Task 3: Start periodic sync with server
+ */
+function startPeriodicSync() {
+  // Initial sync
+  syncQuotes();
+  
+  // Set up periodic checking every 30 seconds
+  setInterval(() => {
+    console.log('Checking for server updates...');
+    syncQuotes();
+  }, 30000);
 }
 
 /**
@@ -569,10 +668,31 @@ function showNotification(message, type = "info") {
   notification.className = `notification ${type}`;
   notification.style.display = "block";
 
+  // Add timestamp for sync notifications
+  if (type === 'info' && message.includes('Sync')) {
+    const timestamp = new Date().toLocaleTimeString();
+    notification.textContent = `${message} (${timestamp})`;
+  }
+
   // Auto-hide notification after 3 seconds
   setTimeout(() => {
     notification.style.display = "none";
   }, 3000);
+}
+
+/**
+ * Task 3: Enhanced notification for server updates and conflicts
+ */
+function showServerUpdateNotification(updateType, count) {
+  const messages = {
+    'newQuotes': `🔄 ${count} new quotes synced from server`,
+    'conflicts': `⚠️ ${count} conflicts resolved (server data prioritized)`,
+    'posted': `📤 Posted ${count} quotes to server`,
+    'syncComplete': '✅ Sync completed successfully'
+  };
+  
+  const message = messages[updateType] || 'Server update completed';
+  showNotification(message, 'success');
 }
 
 function updateLastSyncTime() {
