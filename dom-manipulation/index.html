@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamic Quote Generator</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 30px;
+      }
+
+      #quoteDisplay {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-left: 4px solid #007bff;
+        margin: 20px 0;
+        border-radius: 5px;
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+      }
+
+      .quote-text {
+        font-style: italic;
+        font-size: 18px;
+        line-height: 1.6;
+      }
+
+      .quote-category {
+        margin-top: 10px;
+        font-weight: bold;
+        color: #007bff;
+      }
+
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px;
+        font-size: 14px;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      input[type="text"],
+      input[type="file"],
+      select {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 5px;
+        font-size: 14px;
+      }
+
+      .form-section {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+
+      .form-section h3 {
+        margin-top: 0;
+        color: #333;
+      }
+
+      .filter-section {
+        background-color: #e9ecef;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+
+      .import-export-section {
+        background-color: #fff3cd;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+
+      .notification {
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+        display: none;
+      }
+
+      .notification.success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+
+      .notification.info {
+        background-color: #cce7ff;
+        border: 1px solid #99d3ff;
+        color: #004085;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Dynamic Quote Generator</h1>
+
+      <div id="notification" class="notification"></div>
+
+      <div id="quoteDisplay">
+        <div>Click "Show New Quote" to get started!</div>
+      </div>
+
+      <div style="text-align: center; margin: 20px 0">
+        <button id="newQuote">Show New Quote</button>
+      </div>
+
+      <div class="filter-section">
+        <h3>Filter Quotes</h3>
+        <select id="categoryFilter" onchange="filterQuotes()">
+          <option value="all">All Categories</option>
+          <!-- Dynamically populated categories -->
+        </select>
+      </div>
+
+      <div class="form-section" id="addQuoteForm">
+        <h3>Add New Quote</h3>
+        <div>
+          <input
+            id="newQuoteText"
+            type="text"
+            placeholder="Enter a new quote"
+            style="width: 300px"
+          />
+          <input
+            id="newQuoteCategory"
+            type="text"
+            placeholder="Enter quote category"
+            style="width: 200px"
+          />
+          <button onclick="addQuote()">Add Quote</button>
+        </div>
+      </div>
+
+      <div class="import-export-section">
+        <h3>Import/Export Quotes</h3>
+        <div>
+          <button onclick="exportToJsonFile()">Export Quotes</button>
+          <input
+            type="file"
+            id="importFile"
+            accept=".json"
+            onchange="importFromJsonFile(event)"
+          />
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px">
+        <button onclick="syncQuotes()" style="background-color: #28a745">
+          Sync with Server
+        </button>
+        <span
+          id="lastSyncTime"
+          style="margin-left: 10px; color: #666; font-size: 12px"
+        ></span>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
